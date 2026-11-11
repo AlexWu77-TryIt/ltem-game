@@ -33,16 +33,19 @@
   <section id="dialog" class="sheet" hidden aria-live="polite">
     <div class="sheet-inner" id="sheetInner">
       <div class="station-tag" id="stationTag"></div>
-      <div class="speaker">
-        <div class="avatar" id="avatar" aria-hidden="true"></div>
-        <div>
+      <div class="speaker" id="speaker">
+        <div class="portrait" id="portrait" aria-hidden="true">
+          <img id="portraitImg" alt="" hidden>
+          <div class="avatar" id="avatar"></div>
+        </div>
+        <div class="bubble">
           <div class="role" id="role"></div>
           <div class="line" id="line"></div>
         </div>
       </div>
       <div class="options" id="options"></div>
       <div class="feedback" id="feedback" hidden>
-        <div class="fb-head" id="fbHead"></div>
+        <div class="fb-head" id="fbHead"><img class="fb-face" id="fbFace" alt="" hidden><span id="fbText"></span></div>
         <p class="fb-why"><b>為什麼：</b><span id="fbWhy"></span></p>
         <details class="fb-all">
           <summary>展開三個選項的說明</summary>
@@ -103,6 +106,7 @@
 </div>
 
 <script src="config.js"></script>
+<script src="characters.js"></script>
 <script src="iso.js"></script>
 <script src="game.js"></script>
 </body>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>角色設計定稿表</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root { --navy:#1F3A5F; --teal:#2A9D8F; --amber:#F4A261; --cream:#F6F1E7; --ink:#22324A; --muted:#5B6676; --line:#E2DACB; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; line-height: 1.6; }
+    header { background: var(--navy); color: #fff; padding: 24px 16px; }
+    header .k { color: var(--amber); font-weight: 700; font-size: 13px; letter-spacing: .08em; }
+    header h1 { margin: 4px 0 6px; font-size: clamp(22px, 4vw, 34px); font-weight: 900; }
+    header p { margin: 0; opacity: .85; font-size: 14px; max-width: 760px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    section { background: #fff; border-radius: 18px; padding: 18px; margin: 16px 0; }
+    h2 { margin: 0 0 4px; font-size: 22px; color: var(--navy); }
+    h3 { margin: 18px 0 8px; font-size: 15px; color: var(--navy); }
+    .sub { color: var(--muted); margin: 0 0 12px; font-size: 14px; }
+    .hero { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 640px) { .hero { grid-template-columns: 1fr; } }
+    .turn { position: relative; background: linear-gradient(#fff 0 0) padding-box; border: 1px solid var(--line); border-radius: 14px; padding: 8px; }
+    .turn svg { display: block; width: 100%; height: auto; }
+    .guides { position: absolute; inset: 8px; pointer-events: none; }
+    .guides div { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(42,157,143,.55); font-size: 10px; color: #1D7F73; padding-left: 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { width: 34%; color: var(--muted); font-weight: 700; }
+    .sw { display: inline-flex; align-items: center; gap: 6px; margin: 0 10px 6px 0; font-size: 13px; }
+    .sw i { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(0,0,0,.15); display: inline-block; }
+    .exprs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 560px) { .exprs { grid-template-columns: repeat(2, 1fr); } }
+    .expr { background: var(--cream); border-radius: 12px; padding: 6px 6px 8px; text-align: center; font-size: 13px; }
+    .expr svg { width: 100%; height: auto; display: block; }
+    .expr b { display: block; color: var(--navy); }
+    .expr span { color: var(--muted); font-size: 12px; }
+    .mapsizes { display: flex; gap: 22px; align-items: flex-end; flex-wrap: wrap; background: #EFE8DA; border-radius: 12px; padding: 14px; }
+    .mapsizes figure { margin: 0; text-align: center; font-size: 12px; color: var(--muted); }
+    .mapsizes img { display: block; margin: 0 auto 4px; }
+    .note { background: #FFF6EA; border-left: 4px solid var(--amber); padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+    .pair { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .pair .turn { width: 200px; }
+    ul { margin: 6px 0; padding-left: 20px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="k">LTEM Game · Character Redesign POC</div>
+  <h1>角色設計定稿表 Character Design Sheet v1</h1>
+  <p>主角＋1 位 NPC（教育訓練主管）。所有角色共用同一套骨架：2.5 頭身、深藍描邊、左上光源、相同五官比例。地圖小人與對話立繪由同一份定義產生。</p>
+</header>
+<main id="root"></main>
+
+<script src="../../characters.js"></script>
+<script>
+(function () {
+  const C = window.CHAR;
+  const root = document.getElementById('root');
+  const EXPR_LABEL = { neutral: ['一般', '初次對話、情境說明'], happy: ['開心', '肯定、完成任務'], thinking: ['思考', '分析問題、提出疑問'], surprised: ['驚訝', '發現問題、情境轉折'] };
+  const PALETTE = {
+    player: [['頭髮', '#4A3426'], ['外套', '#F4A261'], ['襯衫', '#FFF7EC'], ['褲子', '#2C3E5A'], ['掛繩', '#1D7F73']],
+    trainingManager: [['頭髮', '#2B2F3A'], ['外套', '#2A9D8F'], ['襯衫', '#FFFFFF'], ['領帶／褲子', '#1F3A5F'], ['資料夾', '#C98B4E']]
+  };
+  const ROLE_TEXT = {
+    player: '玩家扮演的資深訓練專員，走完 PDDRO 五站。琥珀色是玩家專屬色，地圖、進度條與按鈕都使用同色，方便一眼認出自己。',
+    trainingManager: '第 3、5、8 回合的對話對象（設計站、查核站），共出現 3 次。主張「課上完再評鑑」「出選擇題就好」「換講師」，是讓玩家練習說服的關鍵角色。'
+  };
+
+  function card(id) {
+    const c = C.CHARACTERS[id];
+    const s = document.createElement('section');
+    const full = C.svg(id, { view: 'full', expr: 'neutral' });
+    s.innerHTML = `
+      <h2>${c.name}</h2>
+      <p class="sub">${ROLE_TEXT[id]}</p>
+      <div class="hero">
+        <div>
+          <div class="turn">${full}
+            <div class="guides">${[0, 1, 2, 3].map((i) => `<div style="top:${(28 + i * 108) / 300 * 100}%">${i === 0 ? '頭頂' : i === 1 ? '1 頭' : i === 2 ? '2 頭' : ''}</div>`).join('')}<div style="top:${292 / 300 * 100}%">腳底定位點</div></div>
+          </div>
+        </div>
+        <div>
+          <table>
+            <tr><th>頭身比例</th><td>約 2.5 頭身（頭高 ≈ 110／全身 ≈ 265，畫布 200×300）</td></tr>
+            <tr><th>辨識特徵</th><td><ul>${c.traits.map((t) => `<li>${t}</li>`).join('')}</ul></td></tr>
+            <tr><th>描邊／光影</th><td>描邊 ${C.STYLE.ink}、3.5 單位；光源左上，右側衣服與下巴有一層陰影</td></tr>
+            <tr><th>地圖素材</th><td>全身、透明背景、原始 256×384；手機顯示高度約 60–75 CSS px；腳底對齊等角格點</td></tr>
+            <tr><th>對話立繪</th><td>半身（頭頂到腰）、2:3、原始 512×768；手機顯示高度 ≤ 170px 或 22% 螢幕高</td></tr>
+            <tr><th>配色</th><td>${PALETTE[id].map(([n, h]) => `<span class="sw"><i style="background:${h}"></i>${n} ${h}</span>`).join('')}</td></tr>
+          </table>
+        </div>
+      </div>
+      <h3>對話立繪・四種表情</h3>
+      <div class="exprs">${C.EXPRESSIONS.map((e) => `<div class="expr">${C.svg(id, { view: 'bust', expr: e })}<b>${EXPR_LABEL[e][0]} ${e}</b><span>${EXPR_LABEL[e][1]}</span></div>`).join('')}</div>
+      <h3>地圖實際尺寸預覽（1:1 CSS px）</h3>
+      <div class="mapsizes">${[48, 64, 80].map((h) => `<figure><img src="${C.dataUrl(id, { view: 'full' })}" height="${Math.round(h * 300 / 270)}" alt=""><figcaption>${h}px</figcaption></figure>`).join('')}</div>`;
+    return s;
+  }
+
+  // 一致性比對：同一角色的地圖小人與立繪並排
+  const pair = document.createElement('section');
+  pair.innerHTML = `<h2>一致性檢查：地圖 ↔ 立繪</h2><p class="sub">同一份角色定義產生，髮型、服裝、配件、配色完全相同。</p>
+    <div class="pair">${['player', 'trainingManager'].map((id) => `<div class="turn" style="width:120px">${C.svg(id, { view: 'full' })}</div><div class="turn" style="width:150px">${C.svg(id, { view: 'bust' })}</div>`).join('')}</div>`;
+
+  const notes = document.createElement('section');
+  notes.innerHTML = `<h2>產出方式與後續</h2>
+    <div class="note">這兩位角色是<b>程式繪製的原創向量插畫</b>（定義在 <code>characters.js</code>），不是點陣圖 AI 生圖，也沒有使用任何外部圖庫。
+    好處是五官與比例由程式保證一致、任意縮放不模糊、每位角色只有數 KB。若定版後想改成手繪厚塗風，可把本頁當成角色規範交給美術，前端只需把圖源換成 WebP 路徑。</div>
+    <h3>請專案負責人確認</h3>
+    <ul><li>畫風（扁平向量、Q 版 2.5 頭身）是否符合教學遊戲定位？</li><li>兩位角色是否容易區分？</li><li>四種表情是否清楚、與情境相符？</li><li>是否以此規範擴充其餘 5 位 NPC（人資長、需求單位主管、外部講師、外部訓練單位窗口、受訓學員）？</li></ul>`;
+
+  root.append(card('player'), card('trainingManager'), pair, notes);
+})();
+</script>
+</body>
+</html>

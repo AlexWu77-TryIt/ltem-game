@@ -52,6 +52,7 @@
 
   IsoMap.prototype.resize = function () {
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    this.dpr = dpr;
     const r = this.cv.getBoundingClientRect();
     this.w = Math.max(1, r.width);
     this.h = Math.max(1, r.height);
@@ -113,6 +114,22 @@
       const p = this.pt(e[0], e[1], z + 1.35);
       c.beginPath(); c.arc(p[0], p[1], r, 0, Math.PI * 2); c.fill();
     });
+  };
+
+  // 角色圖像（characters.js 的向量 Q 版角色）；尚未載入或沒有設計稿時退回方塊人
+  const REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  IsoMap.prototype.actor = function (id, x, y, color, o) {
+    o = o || {};
+    const sp = id && window.CHAR ? window.CHAR.mapSprite(id, o.expr || 'neutral', this.th * 2.45, this.dpr || 1) : null;
+    if (!sp) { this.person(x, y, color, o.bob); return; }
+    const p = this.pt(x, y, o.bob || 0);
+    const c = this.ctx;
+    c.save();
+    if (o.alpha != null) c.globalAlpha = o.alpha;
+    c.translate(p[0], p[1]);
+    if (o.flip) c.scale(-1, 1);
+    c.drawImage(sp.canvas, -sp.ax, -sp.ay, sp.w, sp.h);
+    c.restore();
   };
 
   IsoMap.prototype.plant = function (x, y) {
@@ -192,7 +209,12 @@
       const dx = L.desk[0], dy = L.desk[1];
       const locked = s.state === 'locked';
       const deskCol = locked ? '#C9C3B8' : shade(C.amber, 0.25);
-      items.push({ d: dx + dy + 0.2, f: () => this.person(dx + 0.5, dy + 0.35, locked ? '#A7A196' : NPC_COLORS[i]) });
+      const idle = REDUCE_MOTION ? 0 : (Math.sin(t / 650 + i * 1.7) + 1) * 0.025;
+      items.push({
+        d: dx + dy + 0.2, f: () => this.actor(s.npc, dx + 0.5, dy + 0.35, locked ? '#A7A196' : NPC_COLORS[i], {
+          bob: locked ? 0 : idle, alpha: locked ? 0.5 : null, expr: s.state === 'done' ? 'happy' : 'neutral'
+        })
+      });
       items.push({
         d: dx + dy + 1.0, f: () => {
           this.box(dx, dy + 0.65, 0, 1.0, 0.55, 0.62, deskCol);
@@ -206,14 +228,15 @@
     this.updatePath(t);
     const moving = !!this.path;
     const bob = moving ? Math.abs(Math.sin(t / 90)) * 0.12 : 0;
-    items.push({ d: this.player.x + this.player.y + 0.05, f: () => this.person(this.player.x, this.player.y, C.amber, bob) });
+    const flip = moving && this.facing < 0;
+    items.push({ d: this.player.x + this.player.y + 0.05, f: () => this.actor('player', this.player.x, this.player.y, C.amber, { bob, flip }) });
 
     items.sort((a, b) => a.d - b.d).forEach((it) => it.f());
 
     // 站點標籤（最上層）
     this.stations.forEach((s, i) => {
       const L = LAYOUT[i];
-      const lp = [L.desk[0] + 0.5, L.desk[1] + 0.35, 2.4];
+      const lp = [L.desk[0] + 0.5, L.desk[1] + 0.35, 3.0];
       const txt = (s.state === 'done' ? '✓ ' : '') + s.id + ' ' + s.name;
       s._screen = this.label(lp[0], lp[1], lp[2], txt, s.state, t);
     });
@@ -227,6 +250,7 @@
     const total = Math.abs(p.to[0] - p.from[0]) + Math.abs(p.to[1] - p.from[1]) || 1;
     const dist = k * total;
     const dxAbs = Math.abs(p.to[0] - p.from[0]);
+    const prevScreenX = this.player.x - this.player.y;
     if (dist <= dxAbs) {
       this.player.x = p.from[0] + Math.sign(p.to[0] - p.from[0]) * dist;
       this.player.y = p.from[1];
@@ -234,6 +258,9 @@
       this.player.x = p.to[0];
       this.player.y = p.from[1] + Math.sign(p.to[1] - p.from[1]) * (dist - dxAbs);
     }
+    // 依螢幕水平方向決定角色面向（往左走時鏡像）
+    const sdx = (this.player.x - this.player.y) - prevScreenX;
+    if (Math.abs(sdx) > 1e-4) this.facing = sdx < 0 ? -1 : 1;
     if (k >= 1) {
       const cb = p.done;
       this.path = null;

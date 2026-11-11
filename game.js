@@ -72,7 +72,8 @@
       return '<li class="' + cls + '"><b>' + (i < cs ? '✓' : esc(s.id)) + '</b>' + esc(s.name) + '</li>';
     }).join('');
     map.setStations(DATA.stations.map((s, i) => ({
-      id: s.id, name: s.name, state: i < cs ? 'done' : i === cs ? 'active' : 'locked'
+      id: s.id, name: s.name, state: i < cs ? 'done' : i === cs ? 'active' : 'locked',
+      npc: charOf(DATA.rounds[s.rounds[0] - 1])     // 桌前站的是該站第一回合的角色
     })));
     if (cs < DATA.stations.length) {
       const s = DATA.stations[cs];
@@ -97,6 +98,30 @@
     map.walkTo(idx, () => openRound(nextRound()));
   }
 
+  /* ---------- 角色立繪（只影響畫面，不讀寫遊戲狀態） ---------- */
+  const CH = window.CHAR || null;
+  const charOf = (r) => (CH && r ? CH.forRole(r.role) : null);
+
+  function setPortrait(cid, expr, enter, fallbackColor) {
+    const img = $('portraitImg'), av = $('avatar'), box = $('portrait');
+    const useFallback = () => {
+      img.hidden = true; av.hidden = false; box.classList.remove('has-img');
+      $('speaker').classList.remove('has-img');
+      if (fallbackColor) av.style.background = fallbackColor;
+    };
+    if (!cid) { useFallback(); return; }
+    img.onerror = useFallback;
+    img.src = CH.image(cid, 'bust', expr).src;
+    img.hidden = false; av.hidden = true;
+    box.classList.add('has-img');
+    $('speaker').classList.add('has-img');
+    if (fallbackColor) av.style.background = fallbackColor;
+    const cls = enter ? 'enter' : 'swap';
+    img.classList.remove('enter', 'swap');
+    void img.offsetWidth;                // 重新觸發動畫
+    img.classList.add(cls);
+  }
+
   /* ---------- 對話 ---------- */
   function openRound(ri) {
     const r = DATA.rounds[ri];
@@ -109,7 +134,8 @@
     $('stationTag').title = 'TTQS 指標：' + st.ttqs;
     $('role').textContent = r.role;
     $('line').textContent = r.line;
-    $('avatar').style.background = ['#1F3A5F', '#2A9D8F', '#4C6B91', '#1D6E64', '#172C47'][si];
+    setPortrait(charOf(r), CH ? CH.opening(r.round) : 'neutral', true, ['#1F3A5F', '#2A9D8F', '#4C6B91', '#1D6E64', '#172C47'][si]);
+    $('fbFace').hidden = true;
     const order = shuffle([0, 1, 2]);
     $('options').innerHTML = order.map((oi, k) =>
       '<button class="opt" data-oi="' + oi + '"><span class="k">' + LETTERS[k] + '</span><span class="tx">' +
@@ -138,7 +164,15 @@
     });
     const head = $('fbHead');
     head.className = 'fb-head s' + opt.score;
-    head.textContent = (opt.score === 10 ? '最佳選擇！' : opt.score === 5 ? '部分正確' : '常見陷阱') + '　+' + opt.score + ' 分';
+    $('fbText').textContent = (opt.score === 10 ? '最佳選擇！' : opt.score === 5 ? '部分正確' : '常見陷阱') + '　+' + opt.score + ' 分';
+    // 角色表情回應（只換圖，不影響分數與存檔）
+    const cid = charOf(r);
+    if (cid) {
+      const expr = CH.reaction(r.round, opt.score);
+      setPortrait(cid, expr, false);
+      $('fbFace').src = CH.image(cid, 'bust', expr).src;
+      $('fbFace').hidden = false;
+    }
     $('fbWhy').textContent = opt.feedback;
     $('fbAll').innerHTML = r.options.map((o) =>
       '<div class="fb-item"><div class="t"><span class="tag s' + o.score + '">' + TYPE[o.score] + ' ' + o.score + '</span>' +
@@ -325,6 +359,11 @@
     $('gameSub').textContent = DATA.subtitle;
     $('gameNote').textContent = DATA.note;
 
+    if (CH) {
+      const ids = ['player'];
+      DATA.rounds.forEach((r) => { const id = charOf(r); if (id && ids.indexOf(id) < 0) ids.push(id); });
+      CH.preload(ids);
+    }
     map = new window.IsoMap($('map'));
     const ro = window.ResizeObserver ? new ResizeObserver(() => map.resize()) : null;
     if (ro) ro.observe($('stage')); else window.addEventListener('resize', () => map.resize());

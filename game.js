@@ -73,8 +73,9 @@
     }).join('');
     map.setStations(DATA.stations.map((s, i) => ({
       id: s.id, name: s.name, state: i < cs ? 'done' : i === cs ? 'active' : 'locked',
-      npc: charOf(DATA.rounds[s.rounds[0] - 1])     // 桌前站的是該站第一回合的角色
+      npc: charOf(DATA.rounds[s.rounds[0] - 1])     // 沒有角色系統時的備援：該站第一回合的角色
     })));
+    map.setCast(buildCast(cs));
     if (cs < DATA.stations.length) {
       const s = DATA.stations[cs];
       $('goBtn').textContent = (state.answers.length ? '前往' : '出發：') + s.label + '・' + s.name + ' ' + s.en;
@@ -101,6 +102,27 @@
   /* ---------- 角色立繪（只影響畫面，不讀寫遊戲狀態） ---------- */
   const CH = window.CHAR || null;
   const charOf = (r) => (CH && r ? CH.forRole(r.role) : null);
+
+  // 地圖走位：每位 NPC 平時在自己的駐點；下一回合要說話的角色若不在該站，會走到該站桌邊等玩家
+  function buildCast(cs) {
+    if (!CH || !DATA) return [];
+    const ri = state ? nextRound() : 0;
+    const speaker = (!state || state.finished || ri >= DATA.rounds.length) ? null : charOf(DATA.rounds[ri]);
+    const cast = [];
+    Object.keys(CH.CHARACTERS).forEach((id) => {
+      const home = CH.CHARACTERS[id].home;
+      if (!home) return;
+      let station = home.station, spot = home.spot;
+      if (id === speaker && cs < DATA.stations.length && home.station !== cs) { station = cs; spot = 'guest'; }
+      const isSpeaker = id === speaker;
+      cast.push({
+        id, station, spot,
+        expr: !isSpeaker && home.station < cs ? 'happy' : 'neutral',
+        alpha: !isSpeaker && home.station > cs ? 0.55 : null
+      });
+    });
+    return cast;
+  }
 
   function setPortrait(cid, expr, enter, fallbackColor) {
     const img = $('portraitImg'), av = $('avatar'), box = $('portrait');

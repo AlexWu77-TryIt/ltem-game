@@ -33,6 +33,36 @@
     { desk: [5.2, 3], stand: [5.2, 4.2], guest: [6.4, 3.8] },   // R
     { desk: [3, 3], stand: [3.5, 4.3], guest: [2.75, 3.55] }    // O
   ];
+  // NPC 從桌前／桌邊走到站位（stand）的路線點，繞開桌子與隔間；最後一點一定是 stand
+  const EXITS = [
+    { host: [[2.15, 4.35], [2.15, 4.5], [2, 4.5]], guest: [[2, 4.5]] },
+    { host: [[2.15, 1.35], [2.15, 1.5], [2, 1.5]], guest: [[0.5, 1.5], [2, 1.5]] },
+    { host: [[5.15, 0.95], [5.15, 1.8], [4.5, 1.8]], guest: [[3.9, 0.75], [3.9, 1.8], [4.5, 1.8]] },
+    { host: [[6.35, 3.35], [6.35, 4.2], [5.2, 4.2]], guest: [[6.4, 4.2], [5.2, 4.2]] },
+    { host: [[4.15, 3.35], [4.15, 4.3], [3.5, 4.3]], guest: [[2.75, 4.3], [3.5, 4.3]] }
+  ];
+  const spotPos = (i, spot) => (spot === 'guest' ? LAYOUT[i].guest.slice() : [LAYOUT[i].desk[0] + 0.5, LAYOUT[i].desk[1] + 0.35]);
+  // 站與站之間沿主角走的同一條 L 形走道（先 x 後 y；反方向則原路折返）
+  function legs(a, b) {
+    const pts = [];
+    if (a < b) for (let k = a; k < b; k++) pts.push([LAYOUT[k + 1].stand[0], LAYOUT[k].stand[1]], LAYOUT[k + 1].stand.slice());
+    else for (let k = a - 1; k >= b; k--) pts.push([LAYOUT[k + 1].stand[0], LAYOUT[k].stand[1]], LAYOUT[k].stand.slice());
+    return pts;
+  }
+  // 常用的跨站捷徑（走道上不會穿過桌子或隔間）；其餘沿主角路線
+  const SHORTCUTS = {
+    '0-4': [[3.5, 4.5]],                 // 計畫室 → 成果區
+    '4-0': [[3.5, 4.5]],
+    '3-1': [[5.2, 4.42], [2, 4.42]],     // 查核區 → 設計室
+    '1-3': [[2, 4.42], [5.2, 4.42]]
+  };
+  function route(a, aSpot, b, bSpot) {
+    const out = EXITS[a][aSpot].map((p) => p.slice());
+    const back = EXITS[b][bSpot].map((p) => p.slice()).reverse().slice(1);
+    const sc = SHORTCUTS[a + '-' + b];
+    const mid = sc ? sc.map((p) => p.slice()).concat([LAYOUT[b].stand.slice()]) : legs(a, b);
+    return out.concat(mid, back, [spotPos(b, bSpot)]);
+  }
 
   // 辦公分區：rect = [x0, y0, x1, y1]（格子座標），wall = 靠哪面牆（畫牆腳色帶）
   const ZONES = [
@@ -367,33 +397,71 @@
   };
 
   /* ---------- NPC 走位 ---------- */
-  // list: [{id, station, spot:'host'|'guest', expr, alpha}]
+  // list: [{id, station, spot:'host'|'guest', expr, tag}]
+  // 換位置時沿走道走過去（不穿桌子、不瞬移）；tag = 在腳下顯示名牌
   IsoMap.prototype.setCast = function (list) {
     const seen = {};
     list.forEach((m) => {
-      const L = LAYOUT[m.station];
-      if (!L) return;
+      if (!LAYOUT[m.station]) return;
       seen[m.id] = true;
-      const tgt = m.spot === 'guest' ? L.guest : [L.desk[0] + 0.5, L.desk[1] + 0.35];
       let a = this.cast[m.id];
-      if (!a) a = this.cast[m.id] = { x: tgt[0], y: tgt[1], facing: 1 };
-      a.tx = tgt[0]; a.ty = tgt[1]; a.expr = m.expr; a.alpha = m.alpha;
+      if (!a) {
+        const p = spotPos(m.station, m.spot);
+        a = this.cast[m.id] = { x: p[0], y: p[1], facing: 1, station: m.station, spot: m.spot, route: [] };
+      } else if (a.station !== m.station || a.spot !== m.spot) {
+        if (REDUCE_MOTION) {
+          const p = spotPos(m.station, m.spot); a.x = p[0]; a.y = p[1]; a.route = [];
+        } else {
+          a.route = route(a.station, a.spot, m.station, m.spot);
+        }
+        a.station = m.station; a.spot = m.spot;
+      }
+      a.expr = m.expr; a.tag = !!m.tag;
     });
     Object.keys(this.cast).forEach((id) => { if (!seen[id]) delete this.cast[id]; });
   };
 
+  IsoMap.prototype.castMoving = function (id) {
+    const a = this.cast[id];
+    return !!(a && a.route && a.route.length);
+  };
+
   IsoMap.prototype.updateCast = function (dt) {
-    const speed = 2.6;   // 格／秒
+    const speed = 3.6;   // 格／秒
     Object.keys(this.cast).forEach((id) => {
       const a = this.cast[id];
-      const dx = a.tx - a.x, dy = a.ty - a.y, dist = Math.hypot(dx, dy);
-      if (dist < 0.01) { a.x = a.tx; a.y = a.ty; a.moving = false; return; }
-      const step = Math.min(dist, speed * dt);
-      a.x += dx / dist * step; a.y += dy / dist * step;
-      a.moving = true;
-      const sdx = dx - dy;
-      if (Math.abs(sdx) > 1e-4) a.facing = sdx < 0 ? -1 : 1;
+      let budget = speed * dt;
+      a.moving = false;
+      while (a.route.length && budget > 0) {
+        const [tx, ty] = a.route[0];
+        const dx = tx - a.x, dy = ty - a.y, dist = Math.hypot(dx, dy);
+        if (dist <= budget) { a.x = tx; a.y = ty; budget -= dist; a.route.shift(); }
+        else { a.x += dx / dist * budget; a.y += dy / dist * budget; budget = 0; }
+        a.moving = true;
+        const sdx = dx - dy;
+        if (Math.abs(sdx) > 1e-4) a.facing = sdx < 0 ? -1 : 1;
+      }
+      if (!a.route.length && !a.moving) a.facing = 1;
     });
+  };
+
+  // 名牌：走動中與等待玩家的角色腳下顯示名字，讓玩家知道是誰、要去哪
+  IsoMap.prototype.nameTag = function (id, a) {
+    const ch = window.CHAR && window.CHAR.CHARACTERS[id];
+    if (!ch) return;
+    const c = this.ctx;
+    const p = this.pt(a.x, a.y, 0);
+    const fs = Math.max(11, Math.round(this.tw * 0.15));
+    c.font = '700 ' + fs + 'px ' + FONT;
+    const text = ch.name.replace(/（.*）/, '');
+    const w = c.measureText(text).width + fs * 0.9, h = fs * 1.55;
+    const waiting = a.tag && !a.route.length;
+    c.fillStyle = waiting ? C.amber : 'rgba(31,58,95,.9)';
+    roundRect(c, p[0] - w / 2, p[1] + 3, w, h, h / 2);
+    c.fill();
+    c.fillStyle = waiting ? C.navy : '#FFFFFF';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(text, p[0], p[1] + 3 + h / 2 + 1);
   };
 
   IsoMap.prototype.draw = function (t) {
@@ -423,7 +491,7 @@
         const a = this.cast[id];
         const idle = REDUCE_MOTION ? 0 : (Math.sin(t / 650 + k * 1.7) + 1) * 0.025;
         const bob = a.moving ? Math.abs(Math.sin(t / 90)) * 0.1 : idle;
-        items.push({ d: a.x + a.y - 0.3, f: () => this.actor(id, a.x, a.y, C.navy, { bob, alpha: a.alpha, expr: a.expr, flip: a.moving && a.facing < 0 }) });
+        items.push({ d: a.x + a.y - 0.3, f: () => this.actor(id, a.x, a.y, C.navy, { bob, expr: a.expr, flip: a.moving && a.facing < 0 }) });
       });
     } else {
       this.stations.forEach((s, i) => {
@@ -441,6 +509,9 @@
     items.push({ d: this.player.x + this.player.y + 0.05, f: () => this.actor('player', this.player.x, this.player.y, C.amber, { bob, flip }) });
 
     items.sort((a, b) => a.d - b.d).forEach((it) => it.f());
+
+    // 名牌（在家具與人物之上）
+    castIds.forEach((id) => { const a = this.cast[id]; if (a.route.length || a.tag) this.nameTag(id, a); });
 
     // 站點標籤（最上層）
     this.stations.forEach((s, i) => {

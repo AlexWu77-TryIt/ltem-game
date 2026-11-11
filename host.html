@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>辦訓旅程 掃碼</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root { --navy:#1F3A5F; --teal:#2A9D8F; --amber:#F4A261; --cream:#F6F1E7; }
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0; min-height: 100%;
+      background: var(--navy); color: #fff;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      display: flex; padding: 16px;
+    }
+    .wrap { margin: auto; display: flex; gap: 6vw; align-items: center; max-width: 1400px; width: 100%; justify-content: center; flex-wrap: wrap; }
+    .qr-box { background: #fff; padding: 2.2vmin; border-radius: 3vmin; line-height: 0; }
+    #qr { width: min(62vmin, 80vw); height: min(62vmin, 80vw); }
+    #qr img, #qr canvas { width: 100% !important; height: 100% !important; image-rendering: pixelated; }
+    .info { max-width: 700px; }
+    .kicker { color: var(--amber); font-weight: 700; font-size: clamp(16px, 2.2vw, 26px); letter-spacing: .08em; }
+    h1 { font-size: clamp(30px, min(4.4vw, 8vh), 64px); margin: .2em 0 .3em; font-weight: 900; line-height: 1.2; }
+    ol { font-size: clamp(18px, 2.4vw, 32px); padding-left: 1.3em; margin: 0 0 .8em; line-height: 1.7; }
+    .url { font-size: clamp(14px, 1.6vw, 22px); background: rgba(255,255,255,.1); padding: .4em .8em; border-radius: .5em; word-break: break-all; }
+    .timer { margin-top: 1em; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    #clock { font-size: clamp(36px, 5vw, 64px); font-weight: 900; color: var(--amber); font-variant-numeric: tabular-nums; min-width: 4ch; }
+    button {
+      font: inherit; font-weight: 700; font-size: 18px; min-height: 48px; padding: 8px 18px;
+      border-radius: 12px; border: 0; cursor: pointer; background: var(--amber); color: var(--navy);
+    }
+    button.ghost { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.4); }
+    .tools { margin-top: 1em; display: flex; gap: 10px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="qr-box"><div id="qr" aria-label="遊戲網址 QR Code"></div></div>
+    <div class="info">
+      <div class="kicker">現場互動 · 約 10 分鐘</div>
+      <h1>辦訓旅程<br>一門課的誕生與證明</h1>
+      <ol>
+        <li>手機相機掃描 QR Code</li>
+        <li>輸入暱稱（不用真實姓名）</li>
+        <li>走完 PDDRO 五站、10 回合</li>
+      </ol>
+      <div class="url" id="url"></div>
+      <div class="timer">
+        <div id="clock">10:00</div>
+        <button id="startT">開始計時</button>
+        <button id="resetT" class="ghost">重設</button>
+      </div>
+      <div class="tools">
+        <button id="dl" class="ghost">下載 QR Code PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    (function () {
+      var cfg = window.LTEM_CONFIG || {};
+      var params = new URLSearchParams(location.search);
+      var url = params.get('url') || cfg.GAME_URL || location.href.replace(/host\.html.*$/, '');
+      document.getElementById('url').textContent = url;
+
+      var qr = new QRCode(document.getElementById('qr'), {
+        text: url, width: 1024, height: 1024,
+        colorDark: '#1F3A5F', colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      document.getElementById('dl').addEventListener('click', function () {
+        var src = document.querySelector('#qr canvas');
+        var pad = 96, size = src.width + pad * 2;
+        var c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        var x = c.getContext('2d');
+        x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, size, size);
+        x.imageSmoothingEnabled = false;
+        x.drawImage(src, pad, pad);
+        var a = document.createElement('a');
+        a.download = 'qr.png';
+        a.href = c.toDataURL('image/png');
+        a.click();
+      });
+
+      // 倒數計時（10 分鐘）
+      var left = 600, t = null, clock = document.getElementById('clock');
+      function show() {
+        var m = Math.floor(left / 60), s = left % 60;
+        clock.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        clock.style.color = left <= 60 ? '#FF8A70' : '';
+      }
+      document.getElementById('startT').addEventListener('click', function () {
+        if (t) { clearInterval(t); t = null; this.textContent = '繼續計時'; return; }
+        this.textContent = '暫停';
+        t = setInterval(function () { if (left > 0) { left--; show(); } else { clearInterval(t); t = null; } }, 1000);
+      });
+      document.getElementById('resetT').addEventListener('click', function () {
+        clearInterval(t); t = null; left = 600; show();
+        document.getElementById('startT').textContent = '開始計時';
+      });
+      show();
+    })();
+  </script>
+</body>
+</html>

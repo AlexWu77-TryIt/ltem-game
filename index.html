@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1F3A5F">
+  <title>辦訓旅程</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header id="hud">
+    <div class="hud-top">
+      <div class="brand">辦訓旅程</div>
+      <div class="round-info" id="roundInfo">第 0 / 10 回合</div>
+      <div class="score">分數 <b id="score">0</b><span>/100</span></div>
+    </div>
+    <ol id="progress" aria-label="PDDRO 進度"></ol>
+  </header>
+
+  <main id="stage">
+    <canvas id="map" aria-label="等角辦公室地圖，五個 PDDRO 站點"></canvas>
+    <div id="mapCta">
+      <p id="hint">點擊閃爍的站點，或按下方按鈕出發</p>
+      <button id="goBtn" class="btn primary">前往第 1 站</button>
+    </div>
+  </main>
+
+  <!-- 對話框 -->
+  <section id="dialog" class="sheet" hidden aria-live="polite">
+    <div class="sheet-inner" id="sheetInner">
+      <div class="station-tag" id="stationTag"></div>
+      <div class="speaker">
+        <div class="avatar" id="avatar" aria-hidden="true"></div>
+        <div>
+          <div class="role" id="role"></div>
+          <div class="line" id="line"></div>
+        </div>
+      </div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback" hidden>
+        <div class="fb-head" id="fbHead"></div>
+        <p class="fb-why"><b>為什麼：</b><span id="fbWhy"></span></p>
+        <details class="fb-all">
+          <summary>展開三個選項的說明</summary>
+          <div id="fbAll"></div>
+        </details>
+        <button id="nextBtn" class="btn primary block">下一步</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 開場 -->
+  <section id="start" class="overlay">
+    <div class="card">
+      <div class="kicker">期中報告 · LTEM 互動遊戲</div>
+      <h1 id="gameTitle">辦訓旅程：一門課的誕生與證明</h1>
+      <p class="lead" id="gameSub"></p>
+      <ul class="howto">
+        <li>5 個站點 × 10 回合，約 10 分鐘</li>
+        <li>每回合 3 個選項：最佳 10 分、部分正確 5 分、常見陷阱 0 分</li>
+        <li>選完立即看到回饋與 LTEM 出處</li>
+      </ul>
+      <form id="startForm" autocomplete="off">
+        <label for="nick">你的暱稱</label>
+        <input id="nick" name="nick" maxlength="12" placeholder="例如：小明訓練師" required enterkeyhint="go">
+        <p class="privacy">只記錄暱稱與作答，請勿輸入真實姓名或學號。</p>
+        <button type="submit" class="btn primary block" id="startBtn">開始旅程</button>
+      </form>
+      <div id="resumeBox" hidden>
+        <button class="btn primary block" id="resumeBtn">繼續上次進度</button>
+        <button class="btn ghost block" id="restartBtn">重新開始</button>
+      </div>
+      <p class="note" id="gameNote"></p>
+    </div>
+  </section>
+
+  <!-- 結局 -->
+  <section id="end" class="overlay" hidden>
+    <div class="card end-card">
+      <div class="kicker">旅程完成</div>
+      <div class="final-score"><b id="endScore">0</b><span>/ 100</span></div>
+      <h1 id="endTitle"></h1>
+      <p class="lead" id="endText"></p>
+      <div class="upload" id="uploadStatus"></div>
+      <div class="mini-card">
+        <h2>你在 10 回合中，最常卡在哪個 PDDRO 構面</h2>
+        <p id="weakStation"></p>
+        <div id="reviewList"></div>
+      </div>
+      <button class="btn primary block" id="againBtn">再玩一次</button>
+      <details class="refs">
+        <summary>引用來源</summary>
+        <div id="refs"></div>
+      </details>
+    </div>
+  </section>
+
+  <div id="toast" role="status"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="iso.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

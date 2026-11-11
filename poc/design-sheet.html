@@ -49,8 +49,8 @@
 <body>
 <header>
   <div class="k">LTEM Game · Character Redesign POC</div>
-  <h1>角色設計定稿表 Character Design Sheet v1</h1>
-  <p>主角＋1 位 NPC（教育訓練主管）。所有角色共用同一套骨架：2.5 頭身、深藍描邊、左上光源、相同五官比例。地圖小人與對話立繪由同一份定義產生。</p>
+  <h1>角色設計定稿表 Character Design Sheet v2</h1>
+  <p>主角＋6 位 NPC。所有角色共用同一套骨架：2.5 頭身、深藍描邊、左上光源、相同五官比例。地圖小人與對話立繪由同一份定義產生。</p>
 </header>
 <main id="root"></main>
 
@@ -60,14 +60,9 @@
   const C = window.CHAR;
   const root = document.getElementById('root');
   const EXPR_LABEL = { neutral: ['一般', '初次對話、情境說明'], happy: ['開心', '肯定、完成任務'], thinking: ['思考', '分析問題、提出疑問'], surprised: ['驚訝', '發現問題、情境轉折'] };
-  const PALETTE = {
-    player: [['頭髮', '#4A3426'], ['外套', '#F4A261'], ['襯衫', '#FFF7EC'], ['褲子', '#2C3E5A'], ['掛繩', '#1D7F73']],
-    trainingManager: [['頭髮', '#2B2F3A'], ['外套', '#2A9D8F'], ['襯衫', '#FFFFFF'], ['領帶／褲子', '#1F3A5F'], ['資料夾', '#C98B4E']]
-  };
-  const ROLE_TEXT = {
-    player: '玩家扮演的資深訓練專員，走完 PDDRO 五站。琥珀色是玩家專屬色，地圖、進度條與按鈕都使用同色，方便一眼認出自己。',
-    trainingManager: '第 3、5、8 回合的對話對象（設計站、查核站），共出現 3 次。主張「課上完再評鑑」「出選擇題就好」「換講師」，是讓玩家練習說服的關鍵角色。'
-  };
+  const ORDER = ['player', 'hrDirector', 'demandManager', 'trainingManager', 'externalTrainer', 'vendorContact', 'trainee'];
+  const SW_LABEL = { hair: '頭髮', headband: '髮帶', jacket: '外套', sleeve: '袖子', shirt: '襯衫', tie: '領帶', pocket: '口袋巾', lanyard: '掛繩', pants: '褲子' };
+  const palette = (c) => Object.keys(SW_LABEL).filter((k) => c[k]).map((k) => [SW_LABEL[k], c[k]]);
 
   function card(id) {
     const c = C.CHARACTERS[id];
@@ -75,7 +70,7 @@
     const full = C.svg(id, { view: 'full', expr: 'neutral' });
     s.innerHTML = `
       <h2>${c.name}</h2>
-      <p class="sub">${ROLE_TEXT[id]}</p>
+      <p class="sub">${c.desc}</p>
       <div class="hero">
         <div>
           <div class="turn">${full}
@@ -89,7 +84,7 @@
             <tr><th>描邊／光影</th><td>描邊 ${C.STYLE.ink}、3.5 單位；光源左上，右側衣服與下巴有一層陰影</td></tr>
             <tr><th>地圖素材</th><td>全身、透明背景、原始 256×384；手機顯示高度約 60–75 CSS px；腳底對齊等角格點</td></tr>
             <tr><th>對話立繪</th><td>半身（頭頂到腰）、2:3、原始 512×768；手機顯示高度 ≤ 170px 或 22% 螢幕高</td></tr>
-            <tr><th>配色</th><td>${PALETTE[id].map(([n, h]) => `<span class="sw"><i style="background:${h}"></i>${n} ${h}</span>`).join('')}</td></tr>
+            <tr><th>配色</th><td>${palette(c).map(([n, h]) => `<span class="sw"><i style="background:${h}"></i>${n} ${h}</span>`).join('')}</td></tr>
           </table>
         </div>
       </div>
@@ -100,19 +95,17 @@
     return s;
   }
 
-  // 一致性比對：同一角色的地圖小人與立繪並排
-  const pair = document.createElement('section');
-  pair.innerHTML = `<h2>一致性檢查：地圖 ↔ 立繪</h2><p class="sub">同一份角色定義產生，髮型、服裝、配件、配色完全相同。</p>
-    <div class="pair">${['player', 'trainingManager'].map((id) => `<div class="turn" style="width:120px">${C.svg(id, { view: 'full' })}</div><div class="turn" style="width:150px">${C.svg(id, { view: 'bust' })}</div>`).join('')}</div>`;
+  // 全員並排：確認畫風一致、彼此容易區分
+  const lineup = document.createElement('section');
+  lineup.innerHTML = `<h2>全員並排</h2><p class="sub">1 位主角＋6 位 NPC，共用同一套骨架；每位至少有兩項不靠顏色也能辨識的特徵（髮型、配件、手持物）。</p>
+    <div class="pair">${ORDER.map((id) => `<figure style="margin:0;text-align:center;width:118px"><div class="turn" style="width:100%">${C.svg(id, { view: 'full' })}</div><figcaption style="font-size:12px;font-weight:700;color:var(--navy);margin-top:4px">${C.CHARACTERS[id].name}</figcaption></figure>`).join('')}</div>`;
 
   const notes = document.createElement('section');
-  notes.innerHTML = `<h2>產出方式與後續</h2>
-    <div class="note">這兩位角色是<b>程式繪製的原創向量插畫</b>（定義在 <code>characters.js</code>），不是點陣圖 AI 生圖，也沒有使用任何外部圖庫。
-    好處是五官與比例由程式保證一致、任意縮放不模糊、每位角色只有數 KB。若定版後想改成手繪厚塗風，可把本頁當成角色規範交給美術，前端只需把圖源換成 WebP 路徑。</div>
-    <h3>請專案負責人確認</h3>
-    <ul><li>畫風（扁平向量、Q 版 2.5 頭身）是否符合教學遊戲定位？</li><li>兩位角色是否容易區分？</li><li>四種表情是否清楚、與情境相符？</li><li>是否以此規範擴充其餘 5 位 NPC（人資長、需求單位主管、外部講師、外部訓練單位窗口、受訓學員）？</li></ul>`;
+  notes.innerHTML = `<h2>產出方式</h2>
+    <div class="note">所有角色都是<b>程式繪製的原創向量插畫</b>（定義在 <code>characters.js</code>），不是點陣圖 AI 生圖，也沒有使用任何外部圖庫。
+    五官與比例由程式保證一致、任意縮放不模糊；地圖小人與對話立繪由同一份定義產生。若未來想改成手繪厚塗風，可把本頁當成角色規範交給美術，前端只需把圖源換成 WebP 路徑。</div>`;
 
-  root.append(card('player'), card('trainingManager'), pair, notes);
+  root.append(lineup, ...ORDER.map(card), notes);
 })();
 </script>
 </body>

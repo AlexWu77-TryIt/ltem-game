@@ -75,7 +75,8 @@
       id: s.id, name: s.name, state: i < cs ? 'done' : i === cs ? 'active' : 'locked',
       npc: charOf(DATA.rounds[s.rounds[0] - 1])     // 沒有角色系統時的備援：該站第一回合的角色
     })));
-    map.setCast(buildCast(cs));
+    // 對話框開著時不移動角色，等關閉後才讓玩家看到角色走過去
+    if ($('dialog').hidden) map.setCast(buildCast(cs));
     if (cs < DATA.stations.length) {
       const s = DATA.stations[cs];
       $('goBtn').textContent = (state.answers.length ? '前往' : '出發：') + s.label + '・' + s.name + ' ' + s.en;
@@ -96,29 +97,40 @@
     }
     busy = true;
     $('mapCta').hidden = true;
-    map.walkTo(idx, () => openRound(nextRound()));
+    map.walkTo(idx, () => {
+      // 對話角色還在走過來時，等他到桌邊再開始對話（最多等 4 秒）
+      const sid = charOf(DATA.rounds[nextRound()]);
+      const t0 = Date.now();
+      const go = () => {
+        if (sid && map.castMoving(sid) && Date.now() - t0 < 4000) { setTimeout(go, 120); return; }
+        openRound(nextRound());
+      };
+      go();
+    });
   }
 
   /* ---------- 角色立繪（只影響畫面，不讀寫遊戲狀態） ---------- */
   const CH = window.CHAR || null;
   const charOf = (r) => (CH && r ? CH.forRole(r.role) : null);
 
-  // 地圖走位：每位 NPC 平時在自己的駐點；下一回合要說話的角色若不在該站，會走到該站桌邊等玩家
+  // 地圖走位：每位 NPC 平時在自己的駐點；某一站開始時，這一站會出場的外站角色先走到該站桌邊，
+  // 整站結束才走回去。只在換站時移動，避免同一站內來回走動。
   function buildCast(cs) {
     if (!CH || !DATA) return [];
     const ri = state ? nextRound() : 0;
     const speaker = (!state || state.finished || ri >= DATA.rounds.length) ? null : charOf(DATA.rounds[ri]);
+    const st = DATA.stations[cs];
+    const visiting = st ? st.rounds.map((n) => charOf(DATA.rounds[n - 1])) : [];
     const cast = [];
     Object.keys(CH.CHARACTERS).forEach((id) => {
       const home = CH.CHARACTERS[id].home;
       if (!home) return;
       let station = home.station, spot = home.spot;
-      if (id === speaker && cs < DATA.stations.length && home.station !== cs) { station = cs; spot = 'guest'; }
-      const isSpeaker = id === speaker;
+      if (st && visiting.indexOf(id) >= 0 && home.station !== cs) { station = cs; spot = 'guest'; }
       cast.push({
         id, station, spot,
-        expr: !isSpeaker && home.station < cs ? 'happy' : 'neutral',
-        alpha: !isSpeaker && home.station > cs ? 0.55 : null
+        expr: home.station < cs && station === home.station ? 'happy' : 'neutral',
+        tag: id === speaker
       });
     });
     return cast;

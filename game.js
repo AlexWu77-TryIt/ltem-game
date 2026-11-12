@@ -235,6 +235,71 @@
     renderHud();
   }
 
+  /* ---------- 全部題目與答案（結局後查閱／下載） ---------- */
+  // 每回合列出情境台詞與三個選項（依分數由高到低），標示同學自己的選擇與回饋出處
+  function answerSheetHtml() {
+    return DATA.rounds.map((r, i) => {
+      const st = DATA.stations[stationOfRound(i)];
+      const mine = state && state.answers[i];
+      const opts = r.options.map((o, oi) => ({ o, oi })).sort((a, b) => b.o.score - a.o.score).map(({ o, oi }) => {
+        const picked = !!mine && mine.opt === oi;
+        return '<li class="as-opt' + (picked ? ' picked' : '') + '"><div class="as-head"><span class="tag s' + o.score + '">' +
+          TYPE[o.score] + ' ' + o.score + ' 分</span>' + (picked ? '<span class="mine">你的選擇</span>' : '') + '</div>' +
+          '<div class="as-text">' + esc(o.text) + '</div><div class="as-fb">' + esc(o.feedback) + '</div></li>';
+      }).join('');
+      return '<section class="as-round"><h3>第 ' + r.round + ' 回合｜' + esc(st.name) + ' ' + esc(st.en) + '｜' + esc(r.role) + '</h3>' +
+        '<p class="as-line">' + esc(r.line) + '</p><ol class="as-opts">' + opts + '</ol></section>';
+    }).join('');
+  }
+
+  function toggleAllAnswers() {
+    const box = $('allAnswers'), btn = $('reviewAllBtn');
+    const open = box.hidden;
+    if (open && !box.innerHTML) box.innerHTML = answerSheetHtml();
+    box.hidden = !open;
+    btn.textContent = open ? '收合題目＆答案' : '查閱所有題目＆答案';
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // 產生可離線開啟的 HTML 檔（手機與電腦都能直接用瀏覽器打開）
+  function downloadAnswers() {
+    const sc = total();
+    const end = DATA.endings.find((e) => sc >= e.min && sc <= e.max) || DATA.endings[DATA.endings.length - 1];
+    const d = new Date();
+    const date = d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+    const css = 'body{margin:0;background:#F6F1E7;color:#1B2B40;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.65}' +
+      'main{max-width:760px;margin:0 auto;padding:20px 16px 40px}h1{color:#1F3A5F;font-size:24px;margin:4px 0}' +
+      '.k{color:#2A9D8F;font-weight:700;font-size:13px}.meta{background:#fff;border-radius:12px;padding:10px 14px;margin:12px 0 18px;font-size:15px}' +
+      '.as-round{background:#fff;border-radius:14px;padding:14px 16px;margin:0 0 14px}.as-round h3{margin:0 0 6px;font-size:16px;color:#1F3A5F}' +
+      '.as-line{margin:0 0 10px;font-weight:700}.as-opts{list-style:none;margin:0;padding:0}' +
+      '.as-opt{border:1px solid #E2DACB;border-radius:10px;padding:8px 12px;margin-top:8px}.as-opt.picked{border:2px solid #1F3A5F}' +
+      '.as-head{display:flex;gap:8px;align-items:center;margin-bottom:2px}.tag{font-size:12px;font-weight:900;color:#fff;padding:0 8px;border-radius:999px}' +
+      '.tag.s10{background:#2A9D8F}.tag.s5{background:#D98A3D}.tag.s0{background:#C2553F}.mine{font-size:12px;font-weight:900;color:#1F3A5F}' +
+      '.as-text{font-weight:700}.as-fb{color:#5B6676;font-size:14px}.refs{font-size:12px;color:#5B6676;word-break:break-word}' +
+      '.credit{text-align:center;font-size:12px;color:#5B6676;margin-top:20px}';
+    const doc = '<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+      '<title>辦訓旅程｜題目與答案</title><style>' + css + '</style></head><body><main>' +
+      '<div class="k">B組報告 · LTEM 互動遊戲</div><h1>' + esc(DATA.title) + '｜題目與答案</h1>' +
+      '<div class="meta">暱稱：' + esc(state.nick) + '｜總分：' + sc + ' / 100｜' + esc(end.title) + '｜' + date + '<br>' +
+      '每回合選項依分數排列：最佳 10 分、部分正確 5 分、常見陷阱 0 分；外框加粗的是你的選擇。</div>' +
+      answerSheetHtml() +
+      '<div class="refs"><b>引用來源</b>' + DATA.references.map((t) => '<p>' + esc(t) + '</p>').join('') + '<p>' + esc(DATA.note) + '</p></div>' +
+      '<p class="credit">Create By Alex Wu</p></main></body></html>';
+    const name = '辦訓旅程_題目與答案_' + String(state.nick).replace(/[\\/:*?"<>|\s]/g, '') + '.html';
+    try {
+      const url = URL.createObjectURL(new Blob([doc], { type: 'text/html;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast('已開始下載；沒有反應時請改按「查閱所有題目＆答案」');
+    } catch (e) {
+      toast('這個瀏覽器無法下載，已為你展開所有題目＆答案');
+      if ($('allAnswers').hidden) toggleAllAnswers();
+    }
+  }
+
   /* ---------- 結局 ---------- */
   function finish() {
     state.finished = true;
@@ -263,6 +328,10 @@
         '（你得 ' + x.a.score + ' 分）</div><div><b>正解：</b>' + esc(best.text) + '</div><div>' + esc(best.feedback) + '</div></div>';
     }).join('') : '';
     $('refs').innerHTML = DATA.references.map((t) => '<p>' + esc(t) + '</p>').join('');
+    $('allAnswers').hidden = true;
+    $('allAnswers').innerHTML = '';
+    $('reviewAllBtn').textContent = '查閱所有題目＆答案';
+    $('reviewAllBtn').setAttribute('aria-expanded', 'false');
     $('end').hidden = false;
     $('end').scrollTop = 0;
     renderHud();
@@ -419,6 +488,8 @@
     });
     $('resumeBtn').addEventListener('click', resume);
     $('restartBtn').addEventListener('click', () => { clearSave(); showStart(); });
+    $('downloadBtn').addEventListener('click', downloadAnswers);
+    $('reviewAllBtn').addEventListener('click', toggleAllAnswers);
     $('againBtn').addEventListener('click', () => {
       const nick = state.nick;
       clearSave();

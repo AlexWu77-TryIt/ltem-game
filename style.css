@@ -113,8 +113,12 @@ button, input { font: inherit; }
 .station-tag {
   display: inline-block; font-size: 13px; font-weight: 700;
   background: var(--cream); color: var(--navy);
-  padding: 2px 10px; border-radius: 999px; margin-bottom: 8px;
+  padding: 2px 10px; border-radius: 999px;
 }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.qtype { font-size: 13px; font-weight: 900; padding: 2px 10px; border-radius: 999px; color: #fff; }
+.qtype.warm { background: var(--teal); }
+.qtype.dilemma { background: var(--navy); }
 .speaker { display: flex; gap: 10px; align-items: flex-start; }
 .portrait { flex: none; position: relative; }
 .avatar {
@@ -156,7 +160,7 @@ button, input { font: inherit; }
   border-radius: 4px; background: #FBE3CB;
 }
 .role { font-weight: 900; color: var(--navy); font-size: 15px; }
-.line { font-size: 17px; font-weight: 500; line-height: 1.55; }
+.line { font-size: 17px; font-weight: 500; line-height: 1.55; white-space: pre-line; }
 
 .options { display: grid; gap: 10px; margin-top: 14px; }
 .opt {
@@ -182,15 +186,15 @@ button, input { font: inherit; }
   font-weight: 900; font-size: 18px; padding: 10px 12px; border-radius: 12px; color: #fff;
 }
 .fb-head.s10 { background: var(--good); }
-.fb-head.s5 { background: var(--mid); }
-.fb-head.s0 { background: var(--bad); }
+.fb-head.s6 { background: var(--mid); }
+.fb-head.s3 { background: var(--bad); }
 .fb-why { margin: 10px 0; }
 .fb-all { margin: 8px 0 14px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; }
 .fb-all summary { min-height: 44px; display: flex; align-items: center; font-weight: 700; color: var(--navy); cursor: pointer; }
 .fb-item { border-top: 1px dashed var(--line); padding: 10px 0; font-size: 15px; }
 .fb-item .t { font-weight: 700; }
 .tag { display: inline-block; font-size: 12px; font-weight: 900; padding: 0 8px; border-radius: 999px; color: #fff; margin-right: 6px; vertical-align: 1px; }
-.tag.s10 { background: var(--good); } .tag.s5 { background: var(--mid); } .tag.s0 { background: var(--bad); }
+.tag.s10 { background: var(--good); } .tag.s6 { background: var(--mid); } .tag.s3 { background: var(--bad); }
 
 /* ---------- 疊層 ---------- */
 .overlay {
@@ -217,9 +221,24 @@ input#nick:focus { outline: none; border-color: var(--teal); }
 .final-score { margin-top: 6px; color: var(--navy); }
 .final-score b { font-size: 64px; font-weight: 900; line-height: 1; color: var(--amber); }
 .final-score span { font-size: 18px; font-weight: 700; margin-left: 4px; }
-.upload { font-size: 14px; border-radius: 10px; padding: 8px 10px; margin: 0 0 14px; background: var(--cream); }
-.upload.ok { background: #E3F3F0; color: #1D6E64; }
-.upload.fail { background: #FBE7E2; color: #9B3B27; font-weight: 700; }
+/* 滿分得卡 */
+.reward { font-size: 14px; border-radius: 12px; padding: 10px 12px; margin: 0 0 14px; background: var(--cream); color: var(--muted); text-align: left; }
+.reward b { color: var(--navy); }
+.reward.perfect { background: #FFF4D6; border: 3px solid var(--amber); color: var(--ink, #1B2B40); }
+.rw-title { font-size: 18px; font-weight: 900; color: var(--navy); text-align: center; margin-bottom: 8px; }
+.rw-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0 0 8px; font-size: 15px; }
+.rw-meta dt { color: var(--muted); }
+.rw-meta dd { margin: 0; font-weight: 700; word-break: break-all; }
+.rw-meta dd.big { font-size: 26px; font-weight: 900; color: var(--navy); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.rw-meta .live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #C2553F; vertical-align: 2px; animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+.rw-rule { margin: 0; font-size: 13px; color: var(--muted); }
+.reward-li { font-weight: 700; color: var(--navy); }
+.round-scores { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.round-scores li { background: #fff; border-radius: 8px; text-align: center; padding: 4px 0; border-top: 4px solid var(--line); }
+.round-scores li span { display: block; font-size: 11px; color: var(--muted); }
+.round-scores li b { font-size: 17px; }
+.round-scores li.s10 { border-color: var(--good); } .round-scores li.s6 { border-color: var(--mid); } .round-scores li.s3 { border-color: var(--bad); }
 .mini-card { text-align: left; background: var(--cream); border-radius: 14px; padding: 14px; margin-bottom: 16px; }
 .mini-card h2 { font-size: 15px; margin: 0 0 6px; color: var(--navy); }
 .mini-card #weakStation { margin: 0 0 8px; font-weight: 700; font-size: 18px; color: var(--bad); }
@@ -254,5 +273,6 @@ input#nick:focus { outline: none; border-color: var(--teal); }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 @media (prefers-reduced-motion: reduce) {
+  .rw-meta .live { animation: none; }
   .sheet, .portrait img, .portrait img.enter, .portrait img.swap { animation: none; }
 }

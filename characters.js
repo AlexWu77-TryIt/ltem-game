@@ -33,8 +33,8 @@
       lanyard: '#1D7F73'
     },
     hrDirector: {
-      name: '人資長', rounds: [1, 10],
-      desc: '第 1、10 回合。訂下培訓方向，也在最後要求「所有課程都做到 Tier 8」。駐點：成果發表區。',
+      name: '人資長', rounds: [1, 8, 10],
+      desc: '第 1、8、10 回合。訂下培訓方向，查核時想省評鑑預算，最後要求「所有課程都做到 Tier 8」。駐點：成果發表區。',
       traits: ['銀灰俐落短髮', '深藍正式西裝', '琥珀色口袋巾與胸針', '手拿平板'],
       hairStyle: 'neat', hair: '#8E97A6',
       jacket: '#1F3A5F', shirt: '#FFFFFF', pants: '#1A2F4D', shoes: '#22324A',
@@ -42,8 +42,8 @@
       home: { station: 4, spot: 'host' }
     },
     demandManager: {
-      name: '需求單位主管', rounds: [2, 9],
-      desc: '業務部經理，第 2、9 回合。想「安排一堂溝通課就好」，也最想把績效成長歸功訓練。駐點：計畫會議室。',
+      name: '需求單位主管', rounds: [2, 7, 9],
+      desc: '業務部經理，第 2、7、9 回合。急著開課、認為遷移是學員自己的事，也最想把績效成長寫成訓練成果。駐點：計畫會議室。',
       traits: ['豎立短髮', '白襯衫捲袖＋深藍背心', '右手拿手機'],
       hairStyle: 'spiky', hair: '#3B2A20',
       jacket: '#34506F', sleeve: '#FFFFFF', shirt: '#FFFFFF', pants: '#2C3E5A', shoes: '#3A2A22',
@@ -51,8 +51,8 @@
       home: { station: 0, spot: 'host' }
     },
     trainingManager: {
-      name: '教育訓練主管', rounds: [3, 5, 8],
-      desc: '第 3、5、8 回合的對話對象，共出現 3 次。主張「課上完再評鑑」「出選擇題就好」「換講師」，是讓玩家練習說服的關鍵角色。駐點：數據查核區。',
+      name: '教育訓練主管', rounds: [4],
+      desc: '第 4 回合；第 6 回合也有一句台詞。在意人力與時間成本，想省掉課後再測與持續提醒。駐點：數據查核區。',
       traits: ['頭頂髮髻', '圓框眼鏡', '青綠西裝外套＋深藍領帶', '手拿評鑑資料夾'],
       hairStyle: 'bun', hair: '#2B2F3A',
       jacket: '#2A9D8F', shirt: '#FFFFFF', pants: '#1F3A5F', shoes: '#22324A',
@@ -60,8 +60,8 @@
       home: { station: 3, spot: 'host' }
     },
     externalTrainer: {
-      name: '外部講師', rounds: [4],
-      desc: '第 4 回合。課程八成是講授，對內容很有自信。駐點：課程設計室。',
+      name: '外部訓練單位講師', rounds: [3],
+      desc: '第 3 回合。準備用情境題評量學員的面談決策。駐點：課程設計室。',
       traits: ['及肩長髮', '頭戴式麥克風', '藍灰外套', '右手拿白板筆'],
       hairStyle: 'long', hair: '#5A3A2A',
       jacket: '#4C6B91', shirt: '#FFF7EC', pants: '#2C3E5A', shoes: '#3A2A22',
@@ -69,7 +69,7 @@
       home: { station: 1, spot: 'host' }
     },
     vendorContact: {
-      name: '外部訓練單位窗口', rounds: [6],
+      name: '外部訓練單位窗口', rounds: [5],
       desc: '第 6 回合。結案時拿出簽到表與滿意度 4.8 分。駐點：訓練教室。',
       traits: ['鮑伯頭＋琥珀色髮帶', '淺青綠外套', '琥珀色廠商識別證', '手拿文件夾'],
       hairStyle: 'bob', hair: '#6B4A2E', headband: '#F4A261',
@@ -78,8 +78,8 @@
       home: { station: 2, spot: 'host' }
     },
     trainee: {
-      name: '受訓學員（新任主管）', rounds: [7],
-      desc: '第 7 回合。覺得課不錯，但月底業績壓力大，回去沒時間面談。駐點：訓練教室學員座位。',
+      name: '受訓學員（新任主管）', rounds: [6],
+      desc: '第 6 回合。坦白說沒有 HR 提醒，大概會忘了做面談。駐點：訓練教室學員座位。',
       traits: ['捲髮', '灰藍外套＋琥珀色領帶', '手拿筆記本'],
       hairStyle: 'curly', hair: '#2E2420',
       jacket: '#7A8BA6', shirt: '#FFFFFF', pants: '#2C3E5A', shoes: '#3A2A22',
@@ -94,25 +94,27 @@
     '需求單位主管': 'demandManager',
     '教育訓練主管': 'trainingManager',
     '外部講師': 'externalTrainer',
+    '外部訓練單位講師': 'externalTrainer',
+    '受訓學員': 'trainee',
     '外部訓練單位窗口': 'vendorContact',
     '受訓學員（新任主管）': 'trainee'
   };
 
   // 開場表情：依台詞情境
   const OPENING = {
-    1: 'neutral',    // 人資長：你打算怎麼規劃？
-    2: 'neutral',    // 需求主管：幫我安排一堂溝通課就好
-    3: 'neutral',    // 教育訓練主管：評鑑等課上完再說吧？
-    4: 'happy',      // 外部講師：內容非常完整，學員一定很有收穫
-    5: 'thinking',   // 教育訓練主管：出 20 題選擇題？
-    6: 'happy',      // 窗口：出席率 100%、滿意度 4.8
-    7: 'thinking',   // 學員：哪有時間做面談
-    8: 'surprised',  // 教育訓練主管：部屬沒改善，換講師！
-    9: 'happy',      // 需求主管：績效成長 8%，訓練很成功吧！
+    1: 'neutral',    // 人資長：你打算從哪裡開始規劃？
+    2: 'neutral',    // 需求主管：下週就要開課，評鑑目標之後再談
+    3: 'thinking',   // 講師：情境題該怎麼出？
+    4: 'thinking',   // 教育訓練主管：隔三天再演練，成本太高
+    5: 'happy',      // 窗口：出席率 100%、滿意度 4.8
+    6: 'thinking',   // 學員：HR 不提醒大概會忘
+    7: 'neutral',    // 需求主管：學員回來不用，跟我無關
+    8: 'thinking',   // 人資長：預算有限，只看部門績效
+    9: 'happy',      // 需求主管：直接寫成訓練成果吧！
     10: 'happy'      // 人資長：所有課程都要做到 Tier 8！
   };
-  // 作答後：依回饋內容（最佳→被說服而肯定、部分正確→還在思考、常見陷阱→情境出現問題）
-  const REACTION_DEFAULT = { 10: 'happy', 5: 'thinking', 0: 'surprised' };
+  // 作答後：依得分（最符合 LTEM→被說服而肯定、部分符合→還在思考、較不符合→情境出現問題）
+  const REACTION_DEFAULT = { 10: 'happy', 6: 'thinking', 3: 'surprised' };
   const REACTION_BY_ROUND = {};   // 可逐回合覆寫，例：{ 4: { 10: 'thinking' } }
 
   /* ---------- SVG 組件 ---------- */

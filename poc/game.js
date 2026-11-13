@@ -1,15 +1,16 @@
 (function () {
   'use strict';
 
-  const CFG = window.LTEM_CONFIG || {};
-  const KEY = 'ltem_game_state_v1';
+    const KEY = 'ltem_game_state_v1';
   const $ = (id) => document.getElementById(id);
   const LETTERS = ['A', 'B', 'C'];
-  const TYPE = { 10: '最佳', 5: '部分正確', 0: '常見陷阱' };
+  const TYPE = { 10: '最符合 LTEM', 6: '部分符合', 3: '較不符合' };
+  const RESULT = { 10: '最符合 LTEM！', 6: '部分符合', 3: '較不符合' };
+  const REWARD_RULE = '滿分 100 分的同學依完成時間先後：前 3 位各得老師卡片 2 張，第 4–10 位各 1 張（最多 10 位）；每張卡片加 1 分。';
 
   let DATA = null;
   let map = null;
-  let state = null;           // 持久化：{nick, startAt, answers:[{opt,score}], finished, uploaded}
+  let state = null;           // 持久化：{nick, startAt, answers:[{opt,score}], finished, endAt, attempt}
   let busy = false;           // 走路或對話中
   let shownRound = 0;         // 對話框目前顯示的回合（1-based）
 
@@ -22,16 +23,6 @@
   }
   function clearSave() {
     try { sessionStorage.removeItem(KEY); } catch (e) { /* 忽略 */ }
-  }
-  function deviceId() {
-    try {
-      let id = localStorage.getItem('ltem_device');
-      if (!id) {
-        id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-        localStorage.setItem('ltem_device', id);
-      }
-      return id;
-    } catch (e) { return 'nostore'; }
   }
 
   /* ---------- 計算 ---------- */
@@ -126,7 +117,12 @@
       const home = CH.CHARACTERS[id].home;
       if (!home) return;
       let station = home.station, spot = home.spot;
-      if (st && visiting.indexOf(id) >= 0 && home.station !== cs) { station = cs; spot = 'guest'; }
+      if (st && visiting.indexOf(id) >= 0 && home.station !== cs) {
+        station = cs;
+        // 桌邊已有常駐角色（如訓練教室的學員）時，改站第二個來訪位置
+        const taken = Object.keys(CH.CHARACTERS).some((o) => { const h = CH.CHARACTERS[o].home; return h && h.station === cs && h.spot === 'guest'; });
+        spot = taken ? 'guest2' : 'guest';
+      }
       cast.push({
         id, station, spot,
         expr: home.station < cs && station === home.station ? 'happy' : 'neutral',
@@ -165,9 +161,11 @@
     $('dialog').hidden = false;
     renderHud();
     $('stationTag').textContent = st.label + '｜' + st.name + ' ' + st.en + '　第 ' + r.round + ' / 10 回合';
-    $('stationTag').title = 'TTQS 指標：' + st.ttqs;
+    $('qtype').className = 'qtype ' + (r.type === '兩難題' ? 'dilemma' : 'warm');
+    $('qtype').textContent = r.type + (r.dilemma ? '｜' + r.dilemma : '');
     $('role').textContent = r.role;
-    $('line').textContent = r.line;
+    // 一段台詞有兩位說話者時（如第 6 回合），在第二位前換行；文字本身不變
+    $('line').textContent = r.line.replace(/」(?=[^「」]{1,8}：「)/g, '」\n');
     setPortrait(charOf(r), CH ? CH.opening(r.round) : 'neutral', true, ['#1F3A5F', '#2A9D8F', '#4C6B91', '#1D6E64', '#172C47'][si]);
     $('fbFace').hidden = true;
     const order = shuffle([0, 1, 2]);
@@ -198,7 +196,7 @@
     });
     const head = $('fbHead');
     head.className = 'fb-head s' + opt.score;
-    $('fbText').textContent = (opt.score === 10 ? '最佳選擇！' : opt.score === 5 ? '部分正確' : '常見陷阱') + '　+' + opt.score + ' 分';
+    $('fbText').textContent = RESULT[opt.score] + '　+' + opt.score + ' 分';
     // 角色表情回應（只換圖，不影響分數與存檔）
     const cid = charOf(r);
     if (cid) {
@@ -235,6 +233,72 @@
     renderHud();
   }
 
+  /* ---------- 全部題目與答案（結局後查閱／下載） ---------- */
+  // 每回合列出情境台詞與三個選項（依分數由高到低），標示同學自己的選擇與回饋出處
+  function answerSheetHtml() {
+    return DATA.rounds.map((r, i) => {
+      const st = DATA.stations[stationOfRound(i)];
+      const mine = state && state.answers[i];
+      const opts = r.options.map((o, oi) => ({ o, oi })).sort((a, b) => b.o.score - a.o.score).map(({ o, oi }) => {
+        const picked = !!mine && mine.opt === oi;
+        return '<li class="as-opt' + (picked ? ' picked' : '') + '"><div class="as-head"><span class="tag s' + o.score + '">' +
+          TYPE[o.score] + ' ' + o.score + ' 分</span>' + (picked ? '<span class="mine">你的選擇</span>' : '') + '</div>' +
+          '<div class="as-text">' + esc(o.text) + '</div><div class="as-fb">' + esc(o.feedback) + '</div></li>';
+      }).join('');
+      return '<section class="as-round"><h3>第 ' + r.round + ' 回合｜' + esc(st.name) + ' ' + esc(st.en) + '｜' + esc(r.role) + '｜' + esc(r.type) +
+        (r.dilemma ? '（' + esc(r.dilemma) + '）' : '') + '</h3>' +
+        '<p class="as-line">' + esc(r.line) + '</p><ol class="as-opts">' + opts + '</ol></section>';
+    }).join('');
+  }
+
+  function toggleAllAnswers() {
+    const box = $('allAnswers'), btn = $('reviewAllBtn');
+    const open = box.hidden;
+    if (open && !box.innerHTML) box.innerHTML = answerSheetHtml();
+    box.hidden = !open;
+    btn.textContent = open ? '收合題目＆答案' : '查閱所有題目＆答案';
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // 產生可離線開啟的 HTML 檔（手機與電腦都能直接用瀏覽器打開）
+  function downloadAnswers() {
+    const sc = total();
+    const end = DATA.endings.find((e) => sc >= e.min && sc <= e.max) || DATA.endings[DATA.endings.length - 1];
+    const d = new Date();
+    const date = d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+    const css = 'body{margin:0;background:#F6F1E7;color:#1B2B40;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;line-height:1.65}' +
+      'main{max-width:760px;margin:0 auto;padding:20px 16px 40px}h1{color:#1F3A5F;font-size:24px;margin:4px 0}' +
+      '.k{color:#2A9D8F;font-weight:700;font-size:13px}.meta{background:#fff;border-radius:12px;padding:10px 14px;margin:12px 0 18px;font-size:15px}' +
+      '.as-round{background:#fff;border-radius:14px;padding:14px 16px;margin:0 0 14px}.as-round h3{margin:0 0 6px;font-size:16px;color:#1F3A5F}' +
+      '.as-line{margin:0 0 10px;font-weight:700}.as-opts{list-style:none;margin:0;padding:0}' +
+      '.as-opt{border:1px solid #E2DACB;border-radius:10px;padding:8px 12px;margin-top:8px}.as-opt.picked{border:2px solid #1F3A5F}' +
+      '.as-head{display:flex;gap:8px;align-items:center;margin-bottom:2px}.tag{font-size:12px;font-weight:900;color:#fff;padding:0 8px;border-radius:999px}' +
+      '.tag.s10{background:#2A9D8F}.tag.s6{background:#D98A3D}.tag.s3{background:#C2553F}.mine{font-size:12px;font-weight:900;color:#1F3A5F}' +
+      '.as-text{font-weight:700}.as-fb{color:#5B6676;font-size:14px}.refs{font-size:12px;color:#5B6676;word-break:break-word}' +
+      '.credit{text-align:center;font-size:12px;color:#5B6676;margin-top:20px}';
+    const doc = '<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+      '<title>辦訓旅程｜題目與答案</title><style>' + css + '</style></head><body><main>' +
+      '<div class="k">B組報告 · LTEM 互動遊戲</div><h1>' + esc(DATA.title) + '｜題目與答案</h1>' +
+      '<div class="meta">暱稱：' + esc(state.nick) + '｜總分：' + sc + ' / 100｜' + esc(end.title) + '｜' + date + '<br>' +
+      '每回合選項依分數排列：最符合 LTEM 10 分、部分符合 6 分、較不符合 3 分；外框加粗的是你的選擇。</div>' +
+      answerSheetHtml() +
+      '<div class="refs"><b>引用來源</b>' + DATA.references.map((t) => '<p>' + esc(t) + '</p>').join('') + '<p>' + esc(DATA.note) + '</p></div>' +
+      '<p class="credit">Create By Alex Wu</p></main></body></html>';
+    const name = '辦訓旅程_題目與答案_' + String(state.nick).replace(/[\\/:*?"<>|\s]/g, '') + '.html';
+    try {
+      const url = URL.createObjectURL(new Blob([doc], { type: 'text/html;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast('已開始下載；沒有反應時請改按「查閱所有題目＆答案」');
+    } catch (e) {
+      toast('這個瀏覽器無法下載，已為你展開所有題目＆答案');
+      if ($('allAnswers').hidden) toggleAllAnswers();
+    }
+  }
+
   /* ---------- 結局 ---------- */
   function finish() {
     state.finished = true;
@@ -245,12 +309,15 @@
     $('endScore').textContent = sc;
     $('endTitle').textContent = end.title;
     $('endText').textContent = end.text;
+    renderReward(sc);
+    $('roundScores').innerHTML = state.answers.map((a, i) =>
+      '<li class="s' + a.score + '"><span>' + (i + 1) + '</span><b>' + a.score + '</b></li>').join('');
 
     // 最常卡住的構面：失分最多（同分取較前面）
     const lost = DATA.stations.map((s) => s.rounds.reduce((acc, n) => acc + (10 - state.answers[n - 1].score), 0));
     const maxLost = Math.max.apply(null, lost);
     if (maxLost === 0) {
-      $('weakStation').textContent = '沒有卡關，十回合全部最佳！';
+      $('weakStation').textContent = '沒有失分，十回合全部最符合 LTEM！';
     } else {
       const names = DATA.stations.filter((s, i) => lost[i] === maxLost).map((s) => s.name + ' ' + s.en);
       $('weakStation').textContent = names.join('、') + '（失 ' + maxLost + ' 分）';
@@ -263,84 +330,55 @@
         '（你得 ' + x.a.score + ' 分）</div><div><b>正解：</b>' + esc(best.text) + '</div><div>' + esc(best.feedback) + '</div></div>';
     }).join('') : '';
     $('refs').innerHTML = DATA.references.map((t) => '<p>' + esc(t) + '</p>').join('');
+    $('allAnswers').hidden = true;
+    $('allAnswers').innerHTML = '';
+    $('reviewAllBtn').textContent = '查閱所有題目＆答案';
+    $('reviewAllBtn').setAttribute('aria-expanded', 'false');
     $('end').hidden = false;
     $('end').scrollTop = 0;
     renderHud();
-    submit();
   }
 
-  /* ---------- 成績上傳 ---------- */
-  function setUpload(cls, msg) {
-    const u = $('uploadStatus');
-    u.className = 'upload ' + cls;
-    u.textContent = msg;
-  }
+  /* ---------- 滿分得卡（無後台：同學把結局畫面給講者看，依完成時間排序） ---------- */
+  const pad = (n) => (n < 10 ? '0' : '') + n;
+  const hms = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); };
 
-  function payload() {
-    return {
-      nickname: state.nick,
-      total: total(),
-      durationSec: Math.round(((state.endAt || Date.now()) - state.startAt) / 1000),
-      deviceId: deviceId(),
-      clientTime: new Date().toISOString(),
-      answers: state.answers.map((a, i) => ({
-        round: i + 1,
-        choice: TYPE[a.score],
-        text: DATA.rounds[i].options[a.opt].text,
-        score: a.score
-      }))
-    };
-  }
-
-  function recentlySent(nick) {
+  function nextAttempt() {
     try {
-      const s = JSON.parse(localStorage.getItem('ltem_sent') || 'null');
-      return s && s.nick === nick && Date.now() - s.at < 60000;
-    } catch (e) { return false; }
-  }
-  function markSent(nick) {
-    try { localStorage.setItem('ltem_sent', JSON.stringify({ nick, at: Date.now() })); } catch (e) { /* 忽略 */ }
+      const n = (parseInt(localStorage.getItem('ltem_attempts'), 10) || 0) + 1;
+      localStorage.setItem('ltem_attempts', String(n));
+      return n;
+    } catch (e) { return 0; }
   }
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-  async function post(url, body) {
-    const ctrl = window.AbortController ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), 10000) : null;
-    try {
-      // text/plain + no-cors：不觸發 CORS 預檢，Apps Script 照常收到資料
-      await fetch(url, {
-        method: 'POST', mode: 'no-cors', cache: 'no-store',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body, signal: ctrl ? ctrl.signal : undefined
-      });
-    } finally { if (timer) clearTimeout(timer); }
-  }
-
-  async function submit() {
-    const failMsg = '成績未上傳，請截圖給講者（暱稱：' + state.nick + '，總分 ' + total() + '）';
-    if (state.uploaded) { setUpload('ok', '✓ 成績已上傳'); return; }
-    if (recentlySent(state.nick)) { state.uploaded = true; save(); setUpload('ok', '✓ 成績已上傳（1 分鐘內不重複送出）'); return; }
-    const url = (CFG.APPS_SCRIPT_URL || '').trim();
-    if (!url) { setUpload('fail', failMsg + '｜尚未設定後台網址'); return; }
-    setUpload('', '成績上傳中…');
-    const body = JSON.stringify(payload());
-    for (let i = 0; i < 3; i++) {                     // 1 次 + 重試 2 次
-      try {
-        await post(url, body);
-        state.uploaded = true; save(); markSent(state.nick);
-        setUpload('ok', '✓ 成績已上傳');
-        return;
-      } catch (e) {
-        if (i < 2) await sleep(1000 * (i + 1));
-      }
+  function renderReward(sc) {
+    const box = $('reward');
+    clearInterval(renderReward._t);
+    if (sc < 100) {
+      box.className = 'reward';
+      box.innerHTML = '<b>差 ' + (100 - sc) + ' 分滿分</b><br>' + esc(REWARD_RULE);
+      return;
     }
-    setUpload('fail', failMsg);
+    const sec = Math.max(0, Math.round((state.endAt - state.startAt) / 1000));
+    box.className = 'reward perfect';
+    box.innerHTML = '<div class="rw-title">🏆 滿分！請舉手，把這個畫面給講者看</div>' +
+      '<dl class="rw-meta"><dt>暱稱</dt><dd>' + esc(state.nick) + '</dd>' +
+      '<dt>完成時間</dt><dd class="big">' + hms(state.endAt) + '</dd>' +
+      '<dt>用時</dt><dd>' + Math.floor(sec / 60) + ' 分 ' + pad(sec % 60) + ' 秒</dd>' +
+      (state.attempt ? '<dt>本機作答</dt><dd>第 ' + state.attempt + ' 次</dd>' : '') +
+      '<dt>現在時間</dt><dd><span id="rwNow">' + hms(Date.now()) + '</span> <i class="live" aria-hidden="true"></i></dd></dl>' +
+      '<p class="rw-rule">' + esc(REWARD_RULE) + '</p>';
+    // 會跳動的現在時間：方便講者確認是即時畫面而不是轉傳的截圖
+    renderReward._t = setInterval(() => {
+      const el = $('rwNow');
+      if (!el || $('end').hidden) { clearInterval(renderReward._t); return; }
+      el.textContent = hms(Date.now());
+    }, 1000);
   }
 
   /* ---------- 開始／續玩 ---------- */
   function begin(nick) {
-    state = { nick, startAt: Date.now(), answers: [], finished: false, uploaded: false };
+    state = { nick, startAt: Date.now(), answers: [], finished: false, attempt: nextAttempt() };
     save();
     $('start').hidden = true;
     map.placePlayer(-1);
@@ -393,6 +431,7 @@
     $('gameSub').textContent = DATA.subtitle;
     $('gameNote').textContent = DATA.note;
 
+    $('rewardRule').textContent = REWARD_RULE;
     if (CH) {
       const ids = ['player'];
       DATA.rounds.forEach((r) => { const id = charOf(r); if (id && ids.indexOf(id) < 0) ids.push(id); });
@@ -419,6 +458,8 @@
     });
     $('resumeBtn').addEventListener('click', resume);
     $('restartBtn').addEventListener('click', () => { clearSave(); showStart(); });
+    $('downloadBtn').addEventListener('click', downloadAnswers);
+    $('reviewAllBtn').addEventListener('click', toggleAllAnswers);
     $('againBtn').addEventListener('click', () => {
       const nick = state.nick;
       clearSave();

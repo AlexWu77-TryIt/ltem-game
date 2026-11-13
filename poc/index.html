@@ -32,7 +32,7 @@
   <!-- 對話框 -->
   <section id="dialog" class="sheet" hidden aria-live="polite">
     <div class="sheet-inner" id="sheetInner">
-      <div class="station-tag" id="stationTag"></div>
+      <div class="tag-row"><div class="station-tag" id="stationTag"></div><span class="qtype" id="qtype"></span></div>
       <div class="speaker" id="speaker">
         <div class="portrait" id="portrait" aria-hidden="true">
           <img id="portraitImg" alt="" hidden>
@@ -59,13 +59,14 @@
   <!-- 開場 -->
   <section id="start" class="overlay">
     <div class="card">
-      <div class="kicker">期中報告 · LTEM 互動遊戲</div>
+      <div class="kicker">B組報告 · LTEM 互動遊戲</div>
       <h1 id="gameTitle">辦訓旅程：一門課的誕生與證明</h1>
       <p class="lead" id="gameSub"></p>
       <ul class="howto">
         <li>5 個站點 × 10 回合，約 10 分鐘</li>
-        <li>每回合 3 個選項：最佳 10 分、部分正確 5 分、常見陷阱 0 分</li>
-        <li>選完立即看到回饋與 LTEM 出處</li>
+        <li>暖身題 3 題＋兩難題 7 題；每題最符合 LTEM 10 分、部分符合 6 分、較不符合 3 分</li>
+        <li>選完立即看到回饋與出處（簡報頁碼）</li>
+        <li class="reward-li">🏆 <span id="rewardRule"></span></li>
       </ul>
       <form id="startForm" autocomplete="off">
         <label for="nick">你的暱稱</label>
@@ -78,6 +79,7 @@
         <button class="btn ghost block" id="restartBtn">重新開始</button>
       </div>
       <p class="note" id="gameNote"></p>
+      <p class="credit">Create By Alex Wu</p>
     </div>
   </section>
 
@@ -88,13 +90,18 @@
       <div class="final-score"><b id="endScore">0</b><span>/ 100</span></div>
       <h1 id="endTitle"></h1>
       <p class="lead" id="endText"></p>
-      <div class="upload" id="uploadStatus"></div>
+      <div class="reward" id="reward"></div>
       <div class="mini-card">
-        <h2>你在 10 回合中，最常卡在哪個 PDDRO 構面</h2>
+        <h2>每回合得分</h2>
+        <ol class="round-scores" id="roundScores" aria-label="第 1 到第 10 回合得分"></ol>
+        <h2>你最常在哪個 PDDRO 構面失分</h2>
         <p id="weakStation"></p>
         <div id="reviewList"></div>
       </div>
       <button class="btn primary block" id="againBtn">再玩一次</button>
+      <button class="btn ghost block" id="downloadBtn">下載所有題目＆答案</button>
+      <button class="btn ghost block" id="reviewAllBtn" aria-expanded="false" aria-controls="allAnswers">查閱所有題目＆答案</button>
+      <div class="all-answers" id="allAnswers" hidden></div>
       <details class="refs">
         <summary>引用來源</summary>
         <div id="refs"></div>

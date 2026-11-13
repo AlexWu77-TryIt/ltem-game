@@ -33,6 +33,7 @@
       border-radius: 12px; border: 0; cursor: pointer; background: var(--amber); color: var(--navy);
     }
     button.ghost { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.4); }
+    .rule { font-size: clamp(16px, 2vw, 26px); font-weight: 700; color: var(--amber); margin: 0 0 .8em; }
     .tools { margin-top: 1em; display: flex; gap: 10px; flex-wrap: wrap; }
   </style>
 </head>
@@ -46,7 +47,9 @@
         <li>手機相機掃描 QR Code</li>
         <li>輸入暱稱（不用真實姓名）</li>
         <li>走完 PDDRO 五站、10 回合</li>
+        <li>滿分請舉手，給講者看結局畫面</li>
       </ol>
+      <div class="rule">🏆 依完成時間：前 3 位各 2 張卡片，第 4–10 位各 1 張（每張加 1 分）</div>
       <div class="url" id="url"></div>
       <div class="timer">
         <div id="clock">10:00</div>

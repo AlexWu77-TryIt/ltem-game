@@ -517,9 +517,10 @@
     this.stations.forEach((s, i) => {
       const L = LAYOUT[i];
       const lp = [L.desk[0] + 0.5, L.desk[1] + 0.35, 3.0];
-      // 未解鎖的站只顯示代號，避免標籤擠在一起；目前與已完成的站顯示完整分區名稱
+      // 未解鎖的站不畫標籤（避免遮住角色；遊戲會自動引導下一站）；目前與已完成的站顯示分區名稱
+      if (s.state === 'locked') { s._screen = null; return; }
       const full = s.id + ' ' + (ZONES[i] ? ZONES[i].name : s.name);
-      const txt = s.state === 'locked' ? s.id : (s.state === 'done' ? '✓ ' : '') + full;
+      const txt = (s.state === 'done' ? '✓ ' : '') + full;
       s._screen = this.label(lp[0], lp[1], lp[2], txt, s.state, t);
     });
   };

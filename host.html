@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>辦訓旅程 掃碼</title>
+  <title>Tier 8~7的辦訓旅程 掃碼</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
@@ -17,44 +17,60 @@
       font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       display: flex; padding: 16px;
     }
-    .wrap { margin: auto; display: flex; gap: 6vw; align-items: center; max-width: 1400px; width: 100%; justify-content: center; flex-wrap: wrap; }
-    .qr-box { background: #fff; padding: 2.2vmin; border-radius: 3vmin; line-height: 0; }
+    .wrap { margin: auto; display: flex; gap: 4vw; align-items: center; max-width: 1800px; width: 100%; justify-content: center; flex-wrap: wrap; }
+    .qr-box { background: #fff; padding: 2vmin; border-radius: 3vmin; line-height: 0; flex: none; }
     #qr { width: min(62vmin, 80vw); height: min(62vmin, 80vw); }
     #qr img, #qr canvas { width: 100% !important; height: 100% !important; image-rendering: pixelated; }
-    .info { max-width: 700px; }
-    .kicker { color: var(--amber); font-weight: 700; font-size: clamp(16px, 2.2vw, 26px); letter-spacing: .08em; }
-    h1 { font-size: clamp(30px, min(4.4vw, 8vh), 64px); margin: .2em 0 .3em; font-weight: 900; line-height: 1.2; }
-    ol { font-size: clamp(18px, 2.4vw, 32px); padding-left: 1.3em; margin: 0 0 .8em; line-height: 1.7; }
-    .url { font-size: clamp(14px, 1.6vw, 22px); background: rgba(255,255,255,.1); padding: .4em .8em; border-radius: .5em; word-break: break-all; }
-    .timer { margin-top: 1em; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    #clock { font-size: clamp(36px, 5vw, 64px); font-weight: 900; color: var(--amber); font-variant-numeric: tabular-nums; min-width: 4ch; }
+    .info { max-width: 920px; min-width: 0; }
+    .kicker { color: var(--amber); font-weight: 700; font-size: clamp(16px, 3vh, 34px); letter-spacing: .06em; }
+    h1 { font-size: clamp(30px, 7vh, 80px); margin: .1em 0 .25em; font-weight: 900; line-height: 1.2; }
+    ol { font-size: clamp(18px, 3.5vh, 40px); padding-left: 1.3em; margin: 0 0 .5em; line-height: 1.4; }
+    .rule { font-size: clamp(18px, 3.4vh, 38px); font-weight: 700; color: var(--amber); margin: 0 0 .5em; line-height: 1.45;
+      background: rgba(255,255,255,.08); border-left: 6px solid var(--amber); border-radius: .4em; padding: .35em .8em; }
+    .rule-head { font-weight: 900; }
+    .timer { margin-top: .3em; display: flex; align-items: center; gap: 3vh 28px; flex-wrap: wrap; }
+    /* 計時器與按鈕：原本的兩倍大 */
+    #clock { font-size: clamp(64px, 15vh, 160px); line-height: 1; font-weight: 900; color: var(--amber); font-variant-numeric: tabular-nums; min-width: 4ch; }
+    .timer-btns { display: flex; gap: 20px; flex-wrap: wrap; }
     button {
       font: inherit; font-weight: 700; font-size: 18px; min-height: 48px; padding: 8px 18px;
       border-radius: 12px; border: 0; cursor: pointer; background: var(--amber); color: var(--navy);
     }
+    button.big { font-size: clamp(28px, 5vh, 54px); min-height: clamp(80px, 13vh, 140px); padding: 0 1.1em; border-radius: .6em; }
     button.ghost { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.4); }
-    .rule { font-size: clamp(16px, 2vw, 26px); font-weight: 700; color: var(--amber); margin: 0 0 .8em; }
-    .tools { margin-top: 1em; display: flex; gap: 10px; flex-wrap: wrap; }
+    button.ghost.big { border-width: 4px; }
+    .tools { margin-top: 1.2vh; display: flex; gap: 10px; flex-wrap: wrap; }
+    /* 投影（橫向）：QR 與說明左右並排，全部依畫面高度縮放，不需捲動 */
+    @media (min-aspect-ratio: 5/4) {
+      .wrap { flex-wrap: nowrap; }
+      #qr { width: min(80vh, 40vw); height: min(80vh, 40vw); }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="qr-box"><div id="qr" aria-label="遊戲網址 QR Code"></div></div>
     <div class="info">
-      <div class="kicker">現場互動 · 約 10 分鐘</div>
-      <h1>辦訓旅程<br>一門課的誕生與證明</h1>
+      <div class="kicker">LTEM互動遊戲，遊戲時間10分鐘</div>
+      <h1>Tier 8~7的辦訓旅程</h1>
       <ol>
         <li>手機相機掃描 QR Code</li>
         <li>輸入暱稱（不用真實姓名）</li>
         <li>走完 PDDRO 五站、10 回合</li>
-        <li>滿分請舉手，給講者看結局畫面</li>
+        <li>滿分請到台前，出示滿分成績畫面領取撲克牌</li>
       </ol>
-      <div class="rule">🏆 依完成時間：前 3 位各 2 張卡片，第 4–10 位各 1 張（每張加 1 分）</div>
-      <div class="url" id="url"></div>
+      <div class="rule">
+        <div class="rule-head">🏆 依完成時間：</div>
+        <div>前 3 位各 2 張卡片</div>
+        <div>第 4–10 位各 1 張</div>
+      </div>
+      <div class="url" id="url" hidden></div>
       <div class="timer">
         <div id="clock">10:00</div>
-        <button id="startT">開始計時</button>
-        <button id="resetT" class="ghost">重設</button>
+        <div class="timer-btns">
+          <button id="startT" class="big">開始計時</button>
+          <button id="resetT" class="ghost big">重設</button>
+        </div>
       </div>
       <div class="tools">
         <button id="dl" class="ghost">下載 QR Code PNG</button>
